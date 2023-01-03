@@ -1,31 +1,30 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:database_project/db/functions/dbfunctions.dart';
 import 'package:database_project/model/data_model.dart';
+import 'package:database_project/screen/adding/adding_student/adding_student_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
-class Screenadd extends StatefulWidget {
+class Screenadd extends StatelessWidget {
   Screenadd({Key? key}) : super(key: key);
 
-  @override
-  State<Screenadd> createState() => _ScreenaddState();
-}
-
-class _ScreenaddState extends State<Screenadd> {
   final _formKey = GlobalKey<FormState>();
   // File? image;
   String? imageAvatar;
 
-  Future pickimage() async {
+  Future pickimage({required BuildContext context}) async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image == null) {
       return;
     }
-    //final imagetemporary = File(image.path);
-    setState(() {
-      //this.image = imagetemporary;
-      this.imageAvatar = image.path;
-    });
+    
+    imageAvatar = image.path;
+    BlocProvider.of<AddingStudentBloc>(context)
+        .add(AddingImage(image: image.path));
+
+    ///////////////////////////
   }
 
   final _namecontroller = TextEditingController();
@@ -39,6 +38,7 @@ class _ScreenaddState extends State<Screenadd> {
   @override
   Widget build(BuildContext context) {
     Widget textfield = TextFormField(
+      keyboardType: TextInputType.name,
       controller: _namecontroller,
       decoration: const InputDecoration(
         prefixIcon: Icon(Icons.people),
@@ -66,16 +66,20 @@ class _ScreenaddState extends State<Screenadd> {
           key: _formKey,
           child: ListView(
             children: [
-              CircleAvatar(
-                radius: 60,
-                // backgroundColor: Colors.black,
-                backgroundImage: (imageAvatar != null)
-                    ? FileImage(File(imageAvatar!))
-                    : AssetImage('lib/asset/addin2.webp') as ImageProvider,
+              BlocBuilder<AddingStudentBloc, AddingStudentState>(
+                builder: (context, state) {
+                  return CircleAvatar(
+                    radius: 60,
+                    // backgroundColor: Colors.black,
+                    backgroundImage: (state.imagePath.isNotEmpty)
+                        ? FileImage(File(state.imagePath))
+                        : AssetImage('lib/asset/addin2.webp') as ImageProvider,
+                  );
+                },
               ),
               InkWell(
                 onTap: () {
-                  pickimage();
+                  pickimage(context: context);
                 },
                 child: const Icon(
                   Icons.add_a_photo_sharp,
@@ -93,6 +97,7 @@ class _ScreenaddState extends State<Screenadd> {
               ),
 
               TextFormField(
+                keyboardType: TextInputType.numberWithOptions(),
                 controller: _agecontroller,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.numbers),
@@ -115,6 +120,7 @@ class _ScreenaddState extends State<Screenadd> {
                 height: 20,
               ),
               TextFormField(
+                keyboardType: TextInputType.emailAddress,
                 controller: _emailcontroller,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.mail),
@@ -143,8 +149,9 @@ class _ScreenaddState extends State<Screenadd> {
                 height: 20,
               ),
               TextFormField(
+                keyboardType: TextInputType.phone,
                 controller: _phonecontroller,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.phone),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(30))),
@@ -175,21 +182,28 @@ class _ScreenaddState extends State<Screenadd> {
                         // StudentListButtonClicked();
                         if (_formKey.currentState!.validate()) {
                           StudentListButtonClicked();
-                          Scaffold.of(context).showSnackBar(
-                            const SnackBar(
-                              backgroundColor: Colors.green,
-                              content: Text('Adding Data...'),
-                            ),
-                          );
+                          imageAvatar!.isEmpty
+                              ? Scaffold.of(context).showSnackBar(
+                                  const SnackBar(
+                                    backgroundColor: Colors.red,
+                                    content: Text(' image required'),
+                                  ),
+                                )
+                              : Scaffold.of(context).showSnackBar(
+                                  const SnackBar(
+                                    backgroundColor: Colors.green,
+                                    content: Text('Adding Data...'),
+                                  ),
+                                );
                         }
                       },
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: const BorderSide(color: Colors.black)),
                       child: const Text(
                         'Submit',
                         style: TextStyle(color: Colors.white),
                       ),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: new BorderRadius.circular(20),
-                          side: BorderSide(color: Colors.black)),
                     ),
                   )),
               // ElevatedButton(onPressed: (){}, child: );
@@ -210,10 +224,10 @@ class _ScreenaddState extends State<Screenadd> {
       return;
     }
     // print('$name$age$email$phone');
-    final _student = studentmodel(
-        name: name, age: age, email: email, phone: phone, image: imageAvatar!);
+    final student = studentmodel(
+        name: name, age: age, email: email, phone: phone, image: imageAvatar);
 
-    addStudent(_student);
+    addStudent(student);
     _namecontroller.clear();
     _agecontroller.clear();
     _emailcontroller.clear();

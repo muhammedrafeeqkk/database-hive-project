@@ -1,19 +1,16 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:database_project/db/functions/dbfunctions.dart';
 import 'package:database_project/model/data_model.dart';
-import 'package:database_project/screen/Screen_sudents.dart';
+import 'package:database_project/screen/edit/editing_student/editing_student_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
-class Editscreen extends StatefulWidget {
+class Editscreen extends StatelessWidget {
   Editscreen({Key? key, required this.student}) : super(key: key);
   studentmodel student;
 
-  @override
-  State<Editscreen> createState() => _EditscreenState();
-}
-
-class _EditscreenState extends State<Editscreen> {
   final _formKey = GlobalKey<FormState>();
   String? imageAvatar;
   TextEditingController? _nameController;
@@ -21,27 +18,30 @@ class _EditscreenState extends State<Editscreen> {
   TextEditingController? _emailController;
   TextEditingController? _phoneController;
 
-  @override
   void initState() {
-    imageAvatar = widget.student.image;
-    _nameController = TextEditingController(text: widget.student.name);
-    _ageController = TextEditingController(text: widget.student.age);
-    _emailController = TextEditingController(text: widget.student.email);
-    _phoneController = TextEditingController(text: widget.student.phone);
-
-    super.initState();
+    imageAvatar = student.image;
+    _nameController = TextEditingController(text: student.name);
+    _ageController = TextEditingController(text: student.age);
+    _emailController = TextEditingController(text: student.email);
+    _phoneController = TextEditingController(text: student.phone);
   }
 
-  Future pickimage() async {
+  Future pickimage({required BuildContext context}) async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image == null) {
       return;
     }
     //final imagetemporary = File(image.path);
-    setState(() {
-      //this.image = imagetemporary;
-      this.imageAvatar = image.path;
-    });
+    // setState(() {
+    //   //this.image = imagetemporary;
+    imageAvatar = image.path;
+    // });
+
+    BlocProvider.of<EditingStudentBloc>(context)
+        .add(UpdateEditedImage(updateImage: imageAvatar!));
+
+    log('message');
+    //////////////
   }
 
   Future<void> updateClicked() async {
@@ -50,19 +50,34 @@ class _EditscreenState extends State<Editscreen> {
     final email = _emailController!.text.trim();
     final phone = _phoneController!.text.trim();
 
-    if (name.isEmpty || age.isEmpty || email.isEmpty || phone.isEmpty) {
+    if (name.isEmpty ||
+        age.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        imageAvatar ==null) {
       return;
     }
     // print('$name$age$email$phone');
     final _student = studentmodel(
-        name: name, age: age, email: email, phone: phone, image: imageAvatar!);
+      name: name,
+      age: age,
+      email: email,
+      phone: phone,
+      image: imageAvatar!,
+    );
 
-    editstudent(widget.student.key, _student);
+    await editstudent(student.key, _student);
     _nameController!.clear();
+    _ageController!.clear();
+    _emailController!.clear();
+    _phoneController!.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    initState();
+    BlocProvider.of<EditingStudentBloc>(context)
+        .add(UpdateEditedImage(updateImage: imageAvatar!));
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit field'),
@@ -75,17 +90,20 @@ class _EditscreenState extends State<Editscreen> {
             key: _formKey,
             child: ListView(
               children: [
-                CircleAvatar(
-                  radius: 60,
-                  // backgroundColor: Colors.black,
-                  backgroundImage: (imageAvatar != null)
-                      ? FileImage(File(imageAvatar!))
-                      : AssetImage('lib/asset/addin2.webp') as ImageProvider,
+                BlocBuilder<EditingStudentBloc, EditingImageState>(
+                  builder: (context, state) {
+                    return CircleAvatar(
+                        radius: 60,
+                        // backgroundColor:
+                        // Colors.black,
+                        backgroundImage: FileImage(File(state.image)));
+                  },
                 ),
                 IconButton(
                   icon: Icon(Icons.add_a_photo),
-                  onPressed: () {
-                    pickimage();
+                  onPressed: () async {
+                    await pickimage(context: context);
+                    // BlocProvider.of<EditingStudentEvent>(context).
                   },
                 ),
 
@@ -197,7 +215,7 @@ class _EditscreenState extends State<Editscreen> {
                             primary: Colors.black, shape: StadiumBorder()),
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            updateButtonClicked();
+                            updateButtonClicked(context: context);
                           }
                         },
                         child: const Text(
@@ -214,7 +232,7 @@ class _EditscreenState extends State<Editscreen> {
     );
   }
 
-  void updateButtonClicked() {
+  void updateButtonClicked({required BuildContext context}) {
     showDialog(
         context: context,
         builder: (ctx) {

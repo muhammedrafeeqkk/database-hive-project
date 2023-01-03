@@ -1,7 +1,7 @@
 import 'package:database_project/db/functions/dbfunctions.dart';
-import 'package:database_project/screen/Screen_add.dart';
-import 'package:database_project/screen/Screen_search.dart';
-import 'package:database_project/screen/Screen_sudents.dart';
+import 'package:database_project/screen/adding/Screen_add.dart';
+import 'package:database_project/screen/search/Screen_search.dart';
+import 'package:database_project/screen/studentscreen/Screen_sudents.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
